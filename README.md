@@ -1,61 +1,48 @@
-# StockAI
+# StockAI — NIFTY 50 Forecast Research
 
-Educational stock trend exploration built with React, Flask and scikit-learn. StockAI uses historical observations to calculate technical features, compares Logistic Regression and Random Forest on a chronological holdout, and reports the evaluated model's output with its probability score. It is not investment advice.
+StockAI retrieves observed NIFTY 50 daily OHLCV history from Yahoo Finance and compares one-session-ahead return forecasts. It does not substitute bundled prices when the provider fails. The application is for educational research, not investment advice.
 
-## Features
+## What it includes
 
-- Responsive dashboard with supported NSE symbols, historical closing-price chart and SMA, EMA, RSI and annualized volatility cards.
-- Five-session UP / DOWN / SIDEWAYS classifier; both candidate models are evaluated chronologically and selected by holdout macro F1.
-- Prediction history scoped to the authenticated user.
-- Hashed passwords, signed bearer tokens, parameterized SQL and JSON API errors.
-- MySQL persistence for production; volatile in-memory demo mode is clearly labeled.
-- Yahoo Finance history when available. Demo mode shows a deterministic illustrative fixture and labels it as non-live sample data.
-- A deterministic rule-based fallback is labeled `BASELINE DEMO MODEL` if sklearn training is unavailable; its metrics come from the chronological holdout.
-- In-process caches limit repeated market downloads and avoid retraining against unchanged data.
-- Model fitting limits native math-library threads to keep serverless execution predictable.
+- NIFTY 50 daily chart, SMA, EMA, RSI, MACD, momentum and annualized volatility.
+- Chronological expanding-window evaluation with monthly refits and a 252-session out-of-sample window.
+- Available estimators: Random Forest, Support Vector Regression, AR(1) persistence benchmark; ARIMA(1,0,1) and XGBoost are added when optional packages are installed. The best candidate is selected by actual test RMSE.
+- Return MAE/RMSE, close-price MAE/RMSE/MAPE, directional accuracy, pairwise one-step Diebold–Mariano tests, and a simplified strategy simulation with an explicit 10 bp turnover cost.
+- ADF, Jarque–Bera, Ljung–Box and ARCH diagnostics when `statsmodels` is installed; optional GARCH(1,1) next-session volatility estimate when `arch` is installed.
+- Hashed passwords, signed 12-hour bearer tokens, protected forecast/history endpoints, and persistent account scoped history.
 
 ## Stack and structure
 
-- `frontend/`: React, Vite, Recharts, Lucide and responsive CSS.
-- `backend/`: Flask REST API, market data service, sklearn pipeline and storage adapter.
-- `api/index.py`: Vercel Python function entry point.
-- `database/schema.sql`: MySQL user and prediction tables.
-- `ml/`, `models/`, `data/`: reserved locations for model/data artifacts; no credentials or generated models are committed.
+React + Vite + Recharts frontend; Flask REST API; Pandas, NumPy and scikit-learn analysis; Yahoo Finance daily data; SQLite locally or MySQL in hosted deployments. `api/index.py` is the Vercel Python entry point.
 
 ## Local setup
 
-1. Python 3.11+ and Node.js 18+ are recommended.
-2. Create a virtual environment, activate it and run `pip install -r requirements.txt`.
-3. Copy `.env.example` to `.env`, set a unique `JWT_SECRET`, then load it into your shell.
-4. In one terminal run `python -m flask --app backend.app run --port 5000` from this folder.
-5. In another terminal run `npm install` and `npm run dev`. Set `VITE_API_URL=http://localhost:5000` in the frontend environment when using Vite's dev server.
+1. Install Python 3.11+ and Node.js 18+.
+2. In this directory run `python -m venv .venv`, activate it, then `pip install -r requirements.txt`.
+3. Optional extra estimators and full diagnostics: `pip install -r requirements-research.txt`.
+4. Copy `.env.example` to `.env`; set a unique `JWT_SECRET` and configure `DATABASE_URL`.
+5. Start Flask with `python -m flask --app backend.app run --port 5000`.
+6. In another terminal run `npm install` and `npm run dev`.
 
-The default `APP_MODE=demo` enables clearly identified demo persistence. Demo accounts and their history live only in server memory and disappear when the process restarts. Set `APP_MODE=production`, configure `DATABASE_URL`, and create the schema with `database/schema.sql` for MySQL persistence. Production mode also requires a valid `JWT_SECRET`. `CORS_ORIGINS` is a comma-separated allowlist.
+The local default is persistent SQLite (`sqlite:///stockai.db`), not an in-memory demo account. For MySQL, set `DATABASE_URL=mysql+pymysql://user:password@host:3306/stockai` and apply `database/schema.sql`. Keep `.env` and credentials out of Git. `VITE_API_URL` points the browser to Flask (usually `http://localhost:5000`).
 
-## ML approach
+## Analysis notes
 
-Indicators use trailing windows only. The target compares close at time *t* with close five trading sessions later: above +1% is UP, below -1% is DOWN, and the middle band is SIDEWAYS. Rows without enough forward data or feature history are excluded. The earliest 80% of observations trains each model and the latest 20% evaluates them; a five-session purge prevents training labels from crossing into the holdout window, and observations are never shuffled. Model choice uses actual holdout macro F1. The selected model is refit on labeled history before the latest row is scored. Confidence is the model's class probability, not calibrated certainty. Feature importance is shown only for Random Forest and does not establish causation.
+Features at session *t* use only data observable through *t*. The target is the close-to-close return at *t+1*. The last 252 usable labeled observations are held out; model refits occur every 21 sessions and training only sees labels available at each refit. Forecast model choice uses observed RMSE, not a fixed preferred model. MAPE is reported on forecast close prices; return MAPE is intentionally omitted because daily returns can be near zero. DM p-values use squared error with a one-session horizon. The backtest is simplified and omits slippage, taxes, market impact, and execution constraints. Metrics do not imply future performance.
+
+Yahoo Finance is an external daily-data provider; observations can be delayed or revised. The study history starts in 2010 and extends to the latest session Yahoo returns. If external data is unavailable, requests return an error rather than sample data. Hosted Vercel functions reject SQLite and require the configured persistent MySQL database; local SQLite is durable on the developer machine. Optional ARIMA/XGBoost/GARCH and full diagnostics are identified as unavailable when their dependencies are not installed. LSTM forecasting is not currently implemented; GARCH is used only for volatility, not price direction.
 
 ## API
 
-- `GET /api/stocks`
-- `GET /api/history/<symbol>?range=1mo|3mo|6mo|1y`
-- `GET /api/indicators/<symbol>`
+- `GET /api/health`, `GET /api/stocks`
+- `GET /api/history/NIFTY50?range=1mo|3mo|6mo|1y|5y|study`
+- `GET /api/indicators/NIFTY50`
 - `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`
-- `POST /api/predict` with `{ "symbol": "RELIANCE" }`
-- `GET /api/model-performance?symbol=RELIANCE`
-- `GET /api/predictions`
+- `POST /api/predict` with `{ "symbol": "NIFTY50" }`
+- `GET /api/model-performance?symbol=NIFTY50`, `GET /api/predictions`
 
-All endpoints except market-data reads require `Authorization: Bearer <token>` when marked private in the UI; auth/logout, predict, performance and history are protected.
+Forecasts, performance and history require `Authorization: Bearer <token>`. Market history and technical indicators are public.
 
-## Checks
+## Verify and deploy
 
-Run `npm run build` for the production frontend build. With the Python requirements installed, run `python -m unittest discover -s tests -v` for API, authentication, demo-data, indicator, prediction and evaluation checks.
-
-## Vercel
-
-Import this folder as its own Vercel project. Configure `APP_MODE=production`, `JWT_SECRET`, `DATABASE_URL`, and `CORS_ORIGINS` in Vercel project environment variables. Configure the Python runtime dependencies from `requirements.txt`; `api/index.py` exposes Flask as a serverless function and Vite outputs the static UI to `dist`. Verify the resulting deployment and managed MySQL reachability before treating it as production ready. The in-memory demo store is not durable across serverless invocations, and external market-data availability depends on provider access and function limits.
-
-## Limitations
-
-Demo fallback values are illustrative, deterministic values and are not exchange observations. Yahoo Finance access is best effort and may be delayed, unavailable, or subject to provider terms. Demo persistence is in-memory and may not persist across Vercel serverless invocations. No deployment has been verified. The interface does not promise predictive performance, and the model is a learning demonstration rather than a trading system.
+Run `npm run build` and `python -m unittest discover -s tests -v`. Vercel serves the Vite build and exposes Flask through `api/index.py`. Set `JWT_SECRET`, a reachable MySQL `DATABASE_URL`, and exact allowed `CORS_ORIGINS` in the Vercel project. Yahoo Finance reachability and serverless execution limits must be checked in the target deployment; no hosted deployment is claimed by this repository.

@@ -1,0 +1,5 @@
+# Optional classical/tree models and full diagnostics. Install when package wheels are available.
+-r requirements.txt
+statsmodels>=0.14,<1
+xgboost>=2,<4
+arch>=7,<9
