@@ -38,14 +38,16 @@ def _train_and_predict(frame):
         return _baseline(d,frame)
     if len(d)<80:
         return _baseline(d,frame)
-    split=int(len(d)*.8); X=d[FEATURES]; y=d.target.astype(int)
+    split=int(len(d)*.8); train_end=split-5; X=d[FEATURES]; y=d.target.astype(int)
+    if train_end < 20: return _baseline(d,frame)
     models={"Logistic Regression":make_pipeline(StandardScaler(),LogisticRegression(max_iter=1000,class_weight="balanced")),"Random Forest":RandomForestClassifier(n_estimators=180,max_depth=6,min_samples_leaf=4,class_weight="balanced",random_state=17)}
     metrics={}; fitted={}
     try:
         # Keep BLAS/OpenMP from oversubscribing small serverless functions.
         with threadpool_limits(limits=1):
             for name,m in models.items():
-                m.fit(X.iloc[:split],y.iloc[:split]); pred=m.predict(X.iloc[split:]); p,r,f,_=precision_recall_fscore_support(y.iloc[split:],pred,labels=[0,1,2],average="macro",zero_division=0)
+                # Purge five rows so each training label's future horizon ends before the test window.
+                m.fit(X.iloc[:train_end],y.iloc[:train_end]); pred=m.predict(X.iloc[split:]); p,r,f,_=precision_recall_fscore_support(y.iloc[split:],pred,labels=[0,1,2],average="macro",zero_division=0)
                 metrics[name]={"accuracy":round(float(accuracy_score(y.iloc[split:],pred)),4),"precision":round(float(p),4),"recall":round(float(r),4),"f1":round(float(f),4),"confusion_matrix":confusion_matrix(y.iloc[split:],pred,labels=[0,1,2]).tolist()}
                 fitted[name]=m
     except Exception:

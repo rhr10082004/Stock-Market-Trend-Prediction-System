@@ -34,7 +34,7 @@ The default `APP_MODE=demo` enables clearly identified demo persistence. Demo ac
 
 ## ML approach
 
-Indicators use trailing windows only. The target compares close at time *t* with close five trading sessions later: above +1% is UP, below -1% is DOWN, and the middle band is SIDEWAYS. Rows without enough forward data or feature history are excluded. The earliest 80% of observations trains each model and the latest 20% evaluates them; observations are never shuffled. Model choice uses actual holdout macro F1. The selected model is refit on labeled history before the latest row is scored. Confidence is the model's class probability, not calibrated certainty. Feature importance is shown only for Random Forest and does not establish causation.
+Indicators use trailing windows only. The target compares close at time *t* with close five trading sessions later: above +1% is UP, below -1% is DOWN, and the middle band is SIDEWAYS. Rows without enough forward data or feature history are excluded. The earliest 80% of observations trains each model and the latest 20% evaluates them; a five-session purge prevents training labels from crossing into the holdout window, and observations are never shuffled. Model choice uses actual holdout macro F1. The selected model is refit on labeled history before the latest row is scored. Confidence is the model's class probability, not calibrated certainty. Feature importance is shown only for Random Forest and does not establish causation.
 
 ## API
 
