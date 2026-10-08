@@ -1,5 +1,4 @@
 """Yahoo Finance daily market data. No synthetic or bundled-price fallback."""
-from datetime import date
 from functools import lru_cache
 
 import pandas as pd

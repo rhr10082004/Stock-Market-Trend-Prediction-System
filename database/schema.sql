@@ -10,8 +10,9 @@ CREATE TABLE IF NOT EXISTS predictions (
   user_id BIGINT NOT NULL,
   stock_symbol VARCHAR(20) NOT NULL,
   prediction VARCHAR(20) NOT NULL,
-  confidence DECIMAL(10,7) NULL,
+  confidence DECIMAL(6,5) NOT NULL,
   model VARCHAR(100) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
