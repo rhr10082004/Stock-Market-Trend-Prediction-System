@@ -1,0 +1,16 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.db
+models/*.joblib
+node_modules/
+dist/
+.vercel/
+.preview-profile/
+.preview-static/
+.dom-profile/
+preview.png
+stockai-landing.png
+
