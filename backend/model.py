@@ -33,6 +33,7 @@ def _train_and_predict(frame):
         from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
+        from threadpoolctl import threadpool_limits
     except ImportError:
         return _baseline(d,frame)
     if len(d)<80:
@@ -41,17 +42,20 @@ def _train_and_predict(frame):
     models={"Logistic Regression":make_pipeline(StandardScaler(),LogisticRegression(max_iter=1000,class_weight="balanced")),"Random Forest":RandomForestClassifier(n_estimators=180,max_depth=6,min_samples_leaf=4,class_weight="balanced",random_state=17)}
     metrics={}; fitted={}
     try:
-        for name,m in models.items():
-            m.fit(X.iloc[:split],y.iloc[:split]); pred=m.predict(X.iloc[split:]); p,r,f,_=precision_recall_fscore_support(y.iloc[split:],pred,labels=[0,1,2],average="macro",zero_division=0)
-            metrics[name]={"accuracy":round(float(accuracy_score(y.iloc[split:],pred)),4),"precision":round(float(p),4),"recall":round(float(r),4),"f1":round(float(f),4),"confusion_matrix":confusion_matrix(y.iloc[split:],pred,labels=[0,1,2]).tolist()}
-            fitted[name]=m
+        # Keep BLAS/OpenMP from oversubscribing small serverless functions.
+        with threadpool_limits(limits=1):
+            for name,m in models.items():
+                m.fit(X.iloc[:split],y.iloc[:split]); pred=m.predict(X.iloc[split:]); p,r,f,_=precision_recall_fscore_support(y.iloc[split:],pred,labels=[0,1,2],average="macro",zero_division=0)
+                metrics[name]={"accuracy":round(float(accuracy_score(y.iloc[split:],pred)),4),"precision":round(float(p),4),"recall":round(float(r),4),"f1":round(float(f),4),"confusion_matrix":confusion_matrix(y.iloc[split:],pred,labels=[0,1,2]).tolist()}
+                fitted[name]=m
     except Exception:
         return _baseline(d,frame)
     chosen=max(metrics,key=lambda k:metrics[k]["f1"])
     # Refit on all available labeled rows before the next-session inference.
-    fitted[chosen].fit(X,y)
     latest=indicators(frame).iloc[[-1]][FEATURES]
-    model=fitted[chosen]; idx=int(model.predict(latest)[0]); probs=model.predict_proba(latest)[0]; classes=list(model.classes_)
+    model=fitted[chosen]
+    with threadpool_limits(limits=1):
+        model.fit(X,y); idx=int(model.predict(latest)[0]); probs=model.predict_proba(latest)[0]; classes=list(model.classes_)
     result={"trend":LABELS[idx],"confidence":round(float(probs[classes.index(idx)]),4),"model":chosen,"metrics":metrics,"as_of":str(frame.index[-1].date()),"horizon":"5 trading sessions","target_rule":"UP if 5-session return > +1%; DOWN if below -1%; otherwise SIDEWAYS"}
     if chosen=="Random Forest": result["importance"]=[{"feature":f,"importance":round(float(v),4)} for f,v in sorted(zip(FEATURES,model.feature_importances_),key=lambda x:x[1],reverse=True)[:8]]
     else: result["importance"]=[]
@@ -75,4 +79,3 @@ def _baseline(d,frame):
     metrics={"Baseline Demo Model":{"accuracy":round(sum(1 for a,p in zip(actual,predicted) if a==p)/len(actual),4),"precision":round(sum(precision)/3,4),"recall":round(sum(recall)/3,4),"f1":round(sum(f1)/3,4),"confusion_matrix":matrix}}
     latest=indicators(frame).iloc[-1]; trend_index=_rule(latest); score=min(.95,.55+min(abs(float(latest["Momentum"])),.08)*3)
     return {"trend":LABELS[trend_index],"confidence":round(score,4),"confidence_kind":"heuristic baseline score","model":"BASELINE DEMO MODEL","metrics":metrics,"as_of":str(frame.index[-1].date()),"horizon":"5 trading sessions","target_rule":"UP if 5-session return > +1%; DOWN if below -1%; otherwise SIDEWAYS","importance":[]}
-

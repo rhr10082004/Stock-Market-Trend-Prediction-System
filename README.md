@@ -12,6 +12,7 @@ Educational stock trend exploration built with React, Flask and scikit-learn. St
 - Yahoo Finance history when available. Demo mode shows a deterministic illustrative fixture and labels it as non-live sample data.
 - A deterministic rule-based fallback is labeled `BASELINE DEMO MODEL` if sklearn training is unavailable; its metrics come from the chronological holdout.
 - In-process caches limit repeated market downloads and avoid retraining against unchanged data.
+- Model fitting limits native math-library threads to keep serverless execution predictable.
 
 ## Stack and structure
 
@@ -47,6 +48,10 @@ Indicators use trailing windows only. The target compares close at time *t* with
 
 All endpoints except market-data reads require `Authorization: Bearer <token>` when marked private in the UI; auth/logout, predict, performance and history are protected.
 
+## Checks
+
+Run `npm run build` for the production frontend build. With the Python requirements installed, run `python -m unittest discover -s tests -v` for API, authentication, demo-data, indicator, prediction and evaluation checks.
+
 ## Vercel
 
 Import this folder as its own Vercel project. Configure `APP_MODE=production`, `JWT_SECRET`, `DATABASE_URL`, and `CORS_ORIGINS` in Vercel project environment variables. Configure the Python runtime dependencies from `requirements.txt`; `api/index.py` exposes Flask as a serverless function and Vite outputs the static UI to `dist`. Verify the resulting deployment and managed MySQL reachability before treating it as production ready. The in-memory demo store is not durable across serverless invocations, and external market-data availability depends on provider access and function limits.
@@ -54,4 +59,3 @@ Import this folder as its own Vercel project. Configure `APP_MODE=production`, `
 ## Limitations
 
 Demo fallback values are illustrative, deterministic values and are not exchange observations. Yahoo Finance access is best effort and may be delayed, unavailable, or subject to provider terms. Demo persistence is in-memory and may not persist across Vercel serverless invocations. No deployment has been verified. The interface does not promise predictive performance, and the model is a learning demonstration rather than a trading system.
-

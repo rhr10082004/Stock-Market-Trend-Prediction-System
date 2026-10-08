@@ -39,7 +39,7 @@ def get_history(symbol):
         df,label=history(symbol,period)
         return jsonify(symbol=symbol,mode=label,app_mode=store.mode_label(),data=[{"date":str(i.date()),"close":round(float(r.Close),2)} for i,r in df.iterrows()])
     except ValueError as e: return jsonify(error=str(e)),400
-    except Exception as e: return jsonify(error=str(e)),503
+    except Exception: return jsonify(error="Historical data is temporarily unavailable. Please retry."),503
 
 @app.get("/api/indicators/<symbol>")
 def get_indicators(symbol):
@@ -47,7 +47,7 @@ def get_indicators(symbol):
         df,mode=history(symbol.upper(),"1y"); d=indicators(df); r=d.iloc[-1]
         return jsonify(symbol=symbol.upper(),mode=mode,indicators={k:round(float(r[k]),4) for k in ["SMA","EMA","RSI","MACD","Momentum","Volatility"]})
     except ValueError as e: return jsonify(error=str(e)),400
-    except Exception as e: return jsonify(error=str(e)),503
+    except Exception: return jsonify(error="Technical indicators are temporarily unavailable. Please retry."),503
 
 @app.post("/api/auth/register")
 def register():
@@ -108,4 +108,3 @@ def too_large(_): return jsonify(error="Request is too large"),413
 def not_found(_): return jsonify(error="Endpoint not found"),404
 @app.errorhandler(500)
 def server_error(_): return jsonify(error="Unexpected server error"),500
-
