@@ -13,7 +13,7 @@ StockAI retrieves observed NIFTY 50 daily OHLCV history from Yahoo Finance and c
 
 ## Stack and structure
 
-React + Vite + Recharts frontend; Flask REST API; Pandas, NumPy and scikit-learn analysis; Yahoo Finance daily data; SQLite locally or MySQL in hosted deployments. `api/index.py` is the Vercel Python entry point.
+React + Vite + Recharts frontend; Flask REST API; Pandas, NumPy and scikit-learn analysis; Yahoo Finance or Groww Trading API daily data; SQLite locally or MySQL in hosted deployments. `api/index.py` is the Vercel Python entry point.
 
 ## Local setup
 
@@ -25,6 +25,8 @@ React + Vite + Recharts frontend; Flask REST API; Pandas, NumPy and scikit-learn
 6. In another terminal run `npm install` and `npm run dev`.
 
 The local default is persistent SQLite (`sqlite:///stockai.db`), not an in-memory demo account. For MySQL, set `DATABASE_URL=mysql+pymysql://user:password@host:3306/stockai` and apply `database/schema.sql`. Keep `.env` and credentials out of Git. `VITE_API_URL` points the browser to Flask (usually `http://localhost:5000`).
+
+To use Groww for historical market data, set `MARKET_DATA_PROVIDER=groww` and `GROWW_API_TOKEN` in the backend environment. The token is sent only from Flask to Groww and must never use a `VITE_` variable. Groww access tokens expire daily at 6:00 AM; create/revoke tokens through Groww Trading APIs. StockAI currently uses historical daily candles for NIFTY 50 only, with history documented from 2020. StockAI does not place trades or access account holdings.
 
 ## Analysis notes
 
@@ -45,4 +47,4 @@ Forecasts, performance and history require `Authorization: Bearer <token>`. Mark
 
 ## Verify and deploy
 
-Run `npm run build` and `python -m unittest discover -s tests -v`. Vercel serves the Vite build and exposes Flask through `api/index.py`. Set `JWT_SECRET`, a reachable MySQL `DATABASE_URL`, and exact allowed `CORS_ORIGINS` in the Vercel project. Yahoo Finance reachability and serverless execution limits must be checked in the target deployment; no hosted deployment is claimed by this repository.
+Run `npm run build` and `python -m unittest discover -s tests -v`. Vercel serves the Vite build and exposes Flask through `api/index.py`. Set `JWT_SECRET`, a reachable MySQL `DATABASE_URL`, `MARKET_DATA_PROVIDER`, `GROWW_API_TOKEN` (when using Groww), and exact allowed `CORS_ORIGINS` in the Vercel project. Provider access and serverless execution limits must be checked in the target deployment; no hosted deployment is claimed by this repository.
