@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vercel/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]

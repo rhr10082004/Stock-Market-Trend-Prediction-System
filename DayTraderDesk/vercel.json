@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/*.py": { "maxDuration": 30 }
+  },
+  "rewrites": [
+    { "source": "/api/health", "destination": "/api/health.py" },
+    { "source": "/api/market", "destination": "/api/market.py" },
+    { "source": "/api/history", "destination": "/api/history.py" },
+    { "source": "/api/scan", "destination": "/api/scan.py" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
