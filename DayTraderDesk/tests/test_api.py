@@ -4,6 +4,18 @@ import unittest
 from unittest.mock import patch
 
 from api._lib import market as index
+from api.history import handler as history_handler
+from api.health import handler as health_handler
+from api.market import handler as market_handler
+from api.scan import handler as scan_handler
+
+
+class FunctionRoutes(unittest.TestCase):
+    def test_each_vercel_function_has_an_explicit_route(self):
+        self.assertEqual(health_handler.route, "/api/health")
+        self.assertEqual(market_handler.route, "/api/market")
+        self.assertEqual(history_handler.route, "/api/history")
+        self.assertEqual(scan_handler.route, "/api/scan")
 
 
 def example_series(symbol="SPY"):
